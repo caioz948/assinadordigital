@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Assinar PDF</title>
+	<link rel="stylesheet" href="/css/assinar.css">
+</head>
+<body>
+	<main class="pagina">
+		<section class="cartao">
+			<h1>Assinar PDF</h1>
+			<p class="descricao">
+				Atalho para assinar um PDF rapidamente: o documento será criado na sua conta
+				com você como único assinante.
+			</p>
+
+			<form id="formAssinatura" novalidate>
+				<label class="campo-label" for="arquivoInput">Arquivo PDF:</label>
+
+				<div class="campo-arquivo">
+					<label class="botao-arquivo" for="arquivoInput">Escolher arquivo</label>
+					<input type="file" id="arquivoInput" name="arquivo" accept="application/pdf,.pdf" hidden>
+					<span id="nomeArquivo" class="nome-arquivo">Nenhum arquivo escolhido</span>
+				</div>
+
+				<div id="areaPreview" class="area-preview" hidden>
+					<p class="preview-dica">Arraste e redimensione a etiqueta para posicionar a assinatura.</p>
+
+					<div class="preview-navegacao">
+						<button type="button" id="botaoPaginaAnterior" class="botao-navegacao">&lt;</button>
+						<span id="indicadorPagina" class="indicador-pagina">Página 1 de 1</span>
+						<button type="button" id="botaoProximaPagina" class="botao-navegacao">&gt;</button>
+					</div>
+
+					<div id="previewContainer" class="preview-container">
+						<canvas id="previewCanvas"></canvas>
+						<div id="etiquetaArrastavel" class="etiqueta-arrastavel">
+							<span class="etiqueta-texto">Assinatura</span>
+							<div id="alcaRedimensionar" class="alca-redimensionar"></div>
+						</div>
+					</div>
+				</div>
+
+				<p id="mensagemErro" class="mensagem-erro" hidden></p>
+
+				<button type="submit" id="botaoAssinar" class="botao-assinar" disabled>Assinar</button>
+			</form>
+		</section>
+	</main>
+	<script type="module" src="/js/assinar.js"></script>
+</body>
+</html>
