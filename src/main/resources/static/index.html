@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assinador Digital - Upload de PDF</title>
-    <link rel="stylesheet" href="/css/assinar.css">
+    <title>Assinador Digital</title>
+    <link rel="stylesheet" href="/css/index.css">
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="container">
     <h2>Assinador Digital</h2>
-    <p style="text-align: center; color: #666; font-size: 14px;">Envie um documento PDF para validação</p>
+    <p class="subtitulo">Envie um documento PDF para validação e assinatura</p>
 
     <form id="uploadForm">
         <div class="form-group">
@@ -21,77 +21,31 @@
     </form>
 
     <div id="resultado"></div>
+
+    <div id="areaAssinatura" hidden>
+        <div id="areaPreview" class="area-preview" hidden>
+            <p class="preview-dica">Arraste e redimensione a etiqueta para posicionar a assinatura.</p>
+
+            <div class="preview-navegacao">
+                <button type="button" id="botaoPaginaAnterior" class="botao-navegacao">&lt;</button>
+                <span id="indicadorPagina" class="indicador-pagina">Página 1 de 1</span>
+                <button type="button" id="botaoProximaPagina" class="botao-navegacao">&gt;</button>
+            </div>
+
+            <div id="previewContainer" class="preview-container">
+                <canvas id="previewCanvas"></canvas>
+                <div id="etiquetaArrastavel" class="etiqueta-arrastavel">
+                    <span class="etiqueta-texto">Assinatura</span>
+                    <div id="alcaRedimensionar" class="alca-redimensionar"></div>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="btnAssinar" class="botao-assinar">Assinar PDF</button>
+    </div>
 </div>
 
-<script>
-    // Monta as linhas do resultado com textContent para não interpretar como
-    // HTML o nome do arquivo ou mensagens vindas do servidor.
-    function criarLinha(rotulo, valor) {
-        const linha = document.createElement('div');
-        linha.className = 'info-item';
-        const forte = document.createElement('strong');
-        forte.textContent = rotulo;
-        linha.appendChild(forte);
-        if (valor !== null && valor !== undefined) {
-            linha.append(' ' + valor);
-        }
-        return linha;
-    }
-
-    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-
-        const inputArquivo = document.getElementById('arquivo');
-        const divResultado = document.getElementById('resultado');
-        const btnEnviar = document.getElementById('btnEnviar');
-
-        if (!inputArquivo.files.length) {
-            alert('Por favor, selecione um arquivo PDF.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('arquivo', inputArquivo.files[0]);
-
-        btnEnviar.disabled = true;
-        btnEnviar.textContent = 'Enviando e processando...';
-        divResultado.style.display = 'none';
-
-        try {
-            const response = await fetch('/api/v1/documentos/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const dados = await response.json();
-                divResultado.className = 'sucesso';
-                divResultado.replaceChildren(
-                    criarLinha('✅ ' + dados.mensagem),
-                    document.createElement('br'),
-                    criarLinha('Nome:', dados.nomeArquivo),
-                    criarLinha('Tipo:', dados.tipoConteudo),
-                    criarLinha('Tamanho:', (dados.tamanhoBytes / 1024).toFixed(2) + ' KB'),
-                    criarLinha('Páginas:', dados.quantidadePaginas)
-                );
-            } else {
-                const contentType = response.headers.get('Content-Type') || '';
-                const mensagem = contentType.includes('application/json')
-                    ? (await response.json()).mensagem
-                    : await response.text();
-                divResultado.className = 'erro';
-                divResultado.replaceChildren(criarLinha('❌ Erro:', mensagem || 'Não foi possível processar o arquivo.'));
-            }
-        } catch (error) {
-            divResultado.className = 'erro';
-            divResultado.replaceChildren(criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor.'));
-        } finally {
-            divResultado.style.display = 'block';
-            btnEnviar.disabled = false;
-            btnEnviar.textContent = 'Enviar PDF';
-        }
-    });
-</script>
+<script type="module" src="/js/assinar.js"></script>
 
 </body>
 </html>

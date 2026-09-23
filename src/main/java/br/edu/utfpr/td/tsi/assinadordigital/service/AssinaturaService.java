@@ -13,10 +13,10 @@ import javax.naming.ldap.Rdn;
 import java.security.cert.X509Certificate;
 
 /**
- * Orquestra o fluxo completo de assinatura: valida o upload, resolve a
- * posição da etiqueta (escolhida pelo usuário ou padrão do servidor) e
- * delega a validação/assinatura do PDF ao {@link PdfService} e o
- * carregamento do certificado ao {@link CertificadoService}.
+ * Orquestra o fluxo completo de assinatura: delega a validação do upload ao
+ * {@link DocumentoService}, resolve a posição da etiqueta (escolhida pelo
+ * usuário ou padrão do servidor) e delega a assinatura do PDF ao
+ * {@link PdfService} e o carregamento do certificado ao {@link CertificadoService}.
  */
 @Service
 public class AssinaturaService {
@@ -25,26 +25,23 @@ public class AssinaturaService {
 
 	private final PdfService pdfService;
 	private final CertificadoService certificadoService;
-	private final ValidadorUploadPdf validadorUpload;
+	private final DocumentoService documentoService;
 	private final PosicaoAssinaturaProperties posicaoPadrao;
 
 	public AssinaturaService(PdfService pdfService, CertificadoService certificadoService,
-			ValidadorUploadPdf validadorUpload, PosicaoAssinaturaProperties posicaoPadrao) {
+			DocumentoService documentoService, PosicaoAssinaturaProperties posicaoPadrao) {
 		this.pdfService = pdfService;
 		this.certificadoService = certificadoService;
-		this.validadorUpload = validadorUpload;
+		this.documentoService = documentoService;
 		this.posicaoPadrao = posicaoPadrao;
 	}
 
 	public ResultadoAssinatura assinar(MultipartFile arquivo, String nomeAssinante,
 			PosicaoAssinaturaRequest posicaoRequest) {
-		validadorUpload.validar(arquivo);
+		byte[] conteudoOriginal = documentoService.carregarPdfValidado(arquivo);
 
 		String nomeOriginalSanitizado = nomeSanitizado(arquivo.getOriginalFilename());
 		log.info("Recebendo PDF para assinatura: {} ({} bytes)", nomeOriginalSanitizado, arquivo.getSize());
-
-		byte[] conteudoOriginal = validadorUpload.lerConteudo(arquivo);
-		pdfService.validarConteudo(conteudoOriginal);
 
 		MaterialAssinatura material = certificadoService.carregarMaterialAssinatura();
 		String assinante = StringUtils.hasText(nomeAssinante) ? nomeAssinante : nomeDoCertificado(material);

@@ -56,16 +56,16 @@ public class PdfService {
 	 */
 	public int validarConteudo(byte[] conteudo) {
 		if (!iniciaComAssinaturaPdf(conteudo)) {
-			throw new ArquivoInvalidoException("Formato de arquivo inválido. Envie um PDF.");
+			throw new ArquivoInvalidoException("Formato inválido. O arquivo enviado deve ser um PDF.");
 		}
 
 		try (PDDocument documento = Loader.loadPDF(conteudo)) {
 			if (documento.getNumberOfPages() == 0) {
-				throw new PdfInvalidoException("O arquivo PDF não pôde ser processado.");
+				throw new PdfInvalidoException("Erro ao processar a estrutura do PDF. O arquivo pode estar corrompido.");
 			}
 			return documento.getNumberOfPages();
 		} catch (IOException e) {
-			throw new PdfInvalidoException("O arquivo PDF não pôde ser processado.", e);
+			throw new PdfInvalidoException("Erro ao processar a estrutura do PDF. O arquivo pode estar corrompido.", e);
 		}
 	}
 

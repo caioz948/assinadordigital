@@ -9,13 +9,14 @@ const ALTURA_ETIQUETA_MAXIMA_PT = 80;
 const LARGURA_ETIQUETA_MINIMA_PX = 60;
 const ALTURA_ETIQUETA_MINIMA_PX = 30;
 
-const form = document.getElementById('formAssinatura');
-const arquivoInput = document.getElementById('arquivoInput');
-const nomeArquivoEl = document.getElementById('nomeArquivo');
-const botaoAssinar = document.getElementById('botaoAssinar');
-const mensagemErroEl = document.getElementById('mensagemErro');
-const cartaoEl = document.querySelector('.cartao');
+const containerEl = document.getElementById('container');
+const form = document.getElementById('uploadForm');
+const arquivoInput = document.getElementById('arquivo');
+const btnEnviar = document.getElementById('btnEnviar');
+const divResultado = document.getElementById('resultado');
 
+const areaAssinatura = document.getElementById('areaAssinatura');
+const btnAssinar = document.getElementById('btnAssinar');
 const areaPreview = document.getElementById('areaPreview');
 const previewContainer = document.getElementById('previewContainer');
 const canvas = document.getElementById('previewCanvas');
@@ -25,6 +26,7 @@ const indicadorPagina = document.getElementById('indicadorPagina');
 const botaoPaginaAnterior = document.getElementById('botaoPaginaAnterior');
 const botaoProximaPagina = document.getElementById('botaoProximaPagina');
 
+let arquivoValidado = null;
 let pdfDocument = null;
 let paginaAtual = 1;
 let escalaRenderizacao = 1;
@@ -32,36 +34,119 @@ let larguraPaginaPt = 0;
 let alturaPaginaPt = 0;
 let previewDisponivel = false;
 
-function formatarTamanho(bytes) {
-	if (bytes < 1024) {
-		return bytes + ' B';
+// ---------------------------------------------------------------------------
+// Resultado (mensagens de sucesso/erro)
+// ---------------------------------------------------------------------------
+
+// Monta as linhas do resultado com textContent para não interpretar como
+// HTML o nome do arquivo ou mensagens vindas do servidor.
+function criarLinha(rotulo, valor) {
+	const linha = document.createElement('div');
+	linha.className = 'info-item';
+	const forte = document.createElement('strong');
+	forte.textContent = rotulo;
+	linha.appendChild(forte);
+	if (valor !== null && valor !== undefined) {
+		linha.append(' ' + valor);
 	}
-	if (bytes < 1024 * 1024) {
-		return (bytes / 1024).toFixed(1) + ' KB';
-	}
-	return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+	return linha;
 }
 
-function limparErro() {
-	mensagemErroEl.hidden = true;
-	mensagemErroEl.textContent = '';
+function mostrarResultado(classe, ...linhas) {
+	divResultado.className = classe;
+	divResultado.replaceChildren(...linhas);
+	divResultado.style.display = 'block';
+}
+
+function esconderResultado() {
+	divResultado.style.display = 'none';
+	divResultado.replaceChildren();
 }
 
 function mostrarErro(mensagem) {
-	mensagemErroEl.textContent = mensagem;
-	mensagemErroEl.hidden = false;
+	mostrarResultado('erro', criarLinha('❌ Erro:', mensagem));
 }
 
-function limparSelecao() {
-	arquivoInput.value = '';
-	nomeArquivoEl.textContent = 'Nenhum arquivo escolhido';
-	botaoAssinar.disabled = true;
+async function lerMensagemErro(resposta, mensagemPadrao) {
+	const contentType = resposta.headers.get('Content-Type') || '';
+	if (contentType.includes('application/json')) {
+		const erro = await resposta.json();
+		return erro.mensagem || mensagemPadrao;
+	}
+	return mensagemPadrao;
+}
+
+// ---------------------------------------------------------------------------
+// Passo 1: envio e validação do PDF
+// ---------------------------------------------------------------------------
+
+function limparAssinatura() {
+	arquivoValidado = null;
+	areaAssinatura.hidden = true;
 	esconderPreview();
 }
 
+arquivoInput.addEventListener('change', () => {
+	esconderResultado();
+	limparAssinatura();
+});
+
+form.addEventListener('submit', async (evento) => {
+	evento.preventDefault();
+
+	const arquivo = arquivoInput.files[0];
+	if (!arquivo) {
+		mostrarErro('Por favor, selecione um arquivo PDF.');
+		return;
+	}
+
+	limparAssinatura();
+	esconderResultado();
+	btnEnviar.disabled = true;
+	btnEnviar.textContent = 'Enviando e processando...';
+
+	try {
+		const formData = new FormData();
+		formData.append('arquivo', arquivo);
+
+		const resposta = await fetch('/api/v1/documentos/upload', {
+			method: 'POST',
+			body: formData
+		});
+
+		if (!resposta.ok) {
+			mostrarErro(await lerMensagemErro(resposta, 'Não foi possível processar o arquivo.'));
+			return;
+		}
+
+		const dados = await resposta.json();
+		mostrarResultado('sucesso',
+			criarLinha('✅ ' + dados.mensagem),
+			document.createElement('br'),
+			criarLinha('Nome:', dados.nomeArquivo),
+			criarLinha('Tipo:', dados.tipoConteudo),
+			criarLinha('Tamanho:', (dados.tamanhoBytes / 1024).toFixed(2) + ' KB'),
+			criarLinha('Páginas:', dados.quantidadePaginas)
+		);
+
+		arquivoValidado = arquivo;
+		areaAssinatura.hidden = false;
+		await carregarPreview(arquivo);
+	} catch (erro) {
+		mostrarResultado('erro', criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor.'));
+	} finally {
+		btnEnviar.disabled = false;
+		btnEnviar.textContent = 'Enviar PDF';
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Passo 2: preview e posicionamento da etiqueta
+// ---------------------------------------------------------------------------
+
 function esconderPreview() {
 	areaPreview.hidden = true;
-	cartaoEl.classList.remove('cartao--com-preview');
+	containerEl.classList.remove('container--com-preview');
 	previewDisponivel = false;
 	pdfDocument = null;
 }
@@ -73,7 +158,7 @@ async function carregarPreview(arquivo) {
 		paginaAtual = pdfDocument.numPages;
 
 		areaPreview.hidden = false;
-		cartaoEl.classList.add('cartao--com-preview');
+		containerEl.classList.add('container--com-preview');
 		previewDisponivel = true;
 
 		await renderizarPagina(paginaAtual);
@@ -223,45 +308,22 @@ function calcularPosicaoEscolhida() {
 	return { pagina: paginaAtual, x: xPt, y: yPt, width: larguraPt, height: alturaPt };
 }
 
-arquivoInput.addEventListener('change', () => {
-	limparErro();
-	const arquivo = arquivoInput.files[0];
+// ---------------------------------------------------------------------------
+// Passo 3: assinatura e download
+// ---------------------------------------------------------------------------
 
-	if (!arquivo) {
-		limparSelecao();
+btnAssinar.addEventListener('click', async () => {
+	if (!arquivoValidado) {
 		return;
 	}
 
-	const nomeValido = arquivo.name.toLowerCase().endsWith('.pdf');
-	const tipoValido = arquivo.type === 'application/pdf' || arquivo.type === '';
-
-	if (!nomeValido || !tipoValido) {
-		limparSelecao();
-		mostrarErro('Selecione um arquivo PDF válido.');
-		return;
-	}
-
-	nomeArquivoEl.textContent = `${arquivo.name} (${formatarTamanho(arquivo.size)})`;
-	botaoAssinar.disabled = false;
-	carregarPreview(arquivo);
-});
-
-form.addEventListener('submit', async (evento) => {
-	evento.preventDefault();
-	limparErro();
-
-	const arquivo = arquivoInput.files[0];
-	if (!arquivo) {
-		return;
-	}
-
-	botaoAssinar.disabled = true;
-	const textoOriginalBotao = botaoAssinar.textContent;
-	botaoAssinar.textContent = 'Assinando...';
+	btnAssinar.disabled = true;
+	const textoOriginalBotao = btnAssinar.textContent;
+	btnAssinar.textContent = 'Assinando...';
 
 	try {
 		const dadosFormulario = new FormData();
-		dadosFormulario.append('arquivo', arquivo);
+		dadosFormulario.append('arquivo', arquivoValidado);
 
 		if (previewDisponivel) {
 			const posicao = calcularPosicaoEscolhida();
@@ -278,13 +340,7 @@ form.addEventListener('submit', async (evento) => {
 		});
 
 		if (!resposta.ok) {
-			const contentType = resposta.headers.get('Content-Type') || '';
-			if (contentType.includes('application/json')) {
-				const erro = await resposta.json();
-				mostrarErro(erro.mensagem || 'Não foi possível realizar a assinatura digital.');
-			} else {
-				mostrarErro('Não foi possível realizar a assinatura digital.');
-			}
+			mostrarErro(await lerMensagemErro(resposta, 'Não foi possível realizar a assinatura digital.'));
 			return;
 		}
 
@@ -303,11 +359,12 @@ form.addEventListener('submit', async (evento) => {
 		window.URL.revokeObjectURL(url);
 
 		form.reset();
-		limparSelecao();
+		limparAssinatura();
+		mostrarResultado('sucesso', criarLinha('✅ PDF assinado com sucesso!', 'Download de ' + nomeArquivoSaida + ' iniciado.'));
 	} catch (erro) {
-		mostrarErro('Não foi possível conectar ao servidor. Tente novamente.');
+		mostrarResultado('erro', criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor.'));
 	} finally {
-		botaoAssinar.textContent = textoOriginalBotao;
-		botaoAssinar.disabled = arquivoInput.files.length === 0;
+		btnAssinar.textContent = textoOriginalBotao;
+		btnAssinar.disabled = false;
 	}
 });

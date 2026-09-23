@@ -34,7 +34,7 @@ visual** (etiqueta) no documento, e disponibilize o PDF assinado para download.
 O projeto foi validado nesta máquina com **Microsoft Build of OpenJDK 21**
 (`21.0.12.1`) e **Apache Maven 3.9.16**: `mvn clean install` compila o
 código, e `mvn spring-boot:run` sobe a aplicação normalmente servindo a
-página "Assinar PDF" em `http://localhost:8080`.
+página do Assinador Digital em `http://localhost:8080`.
 
 ## 3. Estrutura do projeto
 
@@ -42,10 +42,12 @@ página "Assinar PDF" em `http://localhost:8080`.
 src/main/java/br/edu/utfpr/td/tsi/assinadordigital/
 ├── Main.java                          # ponto de entrada Spring Boot
 ├── controller/
+│   ├── DocumentoController.java       # POST /api/v1/documentos/upload
 │   └── AssinaturaController.java      # POST /api/assinaturas
 ├── service/
-│   ├── AssinaturaService.java         # orquestra o fluxo (valida upload, chama os demais)
-│   ├── PdfService.java                # valida/assina o PDF e monta a etiqueta visual
+│   ├── DocumentoService.java          # recebe e valida o PDF (ponto único de validação)
+│   ├── AssinaturaService.java         # orquestra a assinatura (valida via DocumentoService, chama os demais)
+│   ├── PdfService.java                # valida o conteúdo/assina o PDF e monta a etiqueta visual
 │   ├── CertificadoService.java        # carrega o certificado/keystore configurado
 │   ├── PdfSignatureService.java       # assinatura criptográfica CMS/PKCS#7 (Bouncy Castle)
 │   ├── MaterialAssinatura.java        # chave privada + cadeia de certificados
@@ -53,6 +55,7 @@ src/main/java/br/edu/utfpr/td/tsi/assinadordigital/
 │   ├── PosicaoAssinaturaRequest.java  # posição opcional vinda do formulário (override)
 │   └── ResultadoAssinatura.java       # bytes do PDF assinado + nome de arquivo
 ├── dto/
+│   ├── DocumentoDTO.java              # dados do PDF validado (resposta do upload)
 │   └── ErroResponse.java              # formato padrão de resposta de erro
 ├── config/
 │   ├── AssinaturaKeystoreProperties.java  # signature.keystore.*
@@ -68,13 +71,25 @@ src/main/java/br/edu/utfpr/td/tsi/assinadordigital/
 src/main/resources/
 ├── application.properties
 ├── certs/dev-keystore.p12             # certificado de DESENVOLVIMENTO (fake, sem valor jurídico)
-└── static/                            # página "Assinar PDF" (index.html + css/js + vendor/pdfjs)
+└── static/
+    ├── index.html                     # página única: envio, validação, preview e assinatura
+    ├── css/index.css
+    ├── js/assinar.js                  # lógica da página (upload, preview com PDF.js, assinatura)
+    └── vendor/pdfjs/                  # PDF.js vendorizado
 ```
 
-Fluxo: `AssinaturaController` → `AssinaturaService` (validações + orquestração)
-→ `PdfService` (valida conteúdo do PDF, monta a etiqueta visual e o campo de
-assinatura) → `PdfSignatureService` (gera a assinatura CMS/PKCS#7 usando o
-material fornecido por `CertificadoService`).
+Fluxos:
+
+- **Validação**: `DocumentoController` → `DocumentoService` (arquivo vazio,
+  tamanho, extensão, Content-Type) → `PdfService.validarConteudo` (assinatura
+  `%PDF-`, abertura com PDFBox, ao menos 1 página) → `DocumentoDTO`.
+- **Assinatura**: `AssinaturaController` → `AssinaturaService` →
+  `DocumentoService` (mesma validação acima) → `PdfService` (monta a etiqueta
+  visual e o campo de assinatura) → `PdfSignatureService` (gera a assinatura
+  CMS/PKCS#7 usando o material fornecido por `CertificadoService`).
+
+Como os dois fluxos validam pelo `DocumentoService`, um arquivo aceito no
+envio é sempre aceito na assinatura, e vice-versa.
 
 ## 4. Como configurar o certificado de desenvolvimento
 
@@ -120,9 +135,32 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-Acesse `http://localhost:8080` para abrir a página **Assinar PDF**.
+Acesse `http://localhost:8080` para abrir a página do **Assinador Digital**.
 
 ## 7. Como utilizar a API
+
+### 7.1. Enviar e validar um PDF
+
+```
+POST /api/v1/documentos/upload
+Content-Type: multipart/form-data
+
+arquivo=<arquivo.pdf>                    (obrigatório)
+```
+
+- **Sucesso (200)**: corpo JSON com os dados do documento:
+  ```json
+  {
+    "nomeArquivo": "documento.pdf",
+    "tipoConteudo": "application/pdf",
+    "tamanhoBytes": 26051,
+    "quantidadePaginas": 11,
+    "mensagem": "PDF carregado e validado com sucesso!"
+  }
+  ```
+- **Erro (400/422)**: mesmo formato de erro da assinatura (ver abaixo).
+
+### 7.2. Assinar um PDF
 
 ```
 POST /api/assinaturas
@@ -149,12 +187,12 @@ limites da página são ajustadas automaticamente pelo servidor.
   `Content-Disposition: attachment; filename="documento_assinado.pdf"`).
 - **Erro (400/422/500)**: corpo JSON no formato:
   ```json
-  { "sucesso": false, "mensagem": "Formato de arquivo inválido. Envie um PDF." }
+  { "sucesso": false, "mensagem": "Formato inválido. O arquivo enviado deve ser um PDF." }
   ```
 
 | Status | Quando ocorre |
 |---|---|
-| 400 | arquivo ausente/vazio, extensão/Content-Type inválido, tamanho excedido |
+| 400 | arquivo ausente/vazio, extensão/Content-Type inválido, conteúdo que não é PDF, tamanho excedido |
 | 422 | PDF com extensão válida mas corrompido/não processável |
 | 500 | falha de certificado ou falha ao gerar a assinatura digital |
 
@@ -166,13 +204,19 @@ curl -X POST http://localhost:8080/api/assinaturas \
   -o documento_assinado.pdf
 ```
 
-Ou pela interface web: acesse `http://localhost:8080`, selecione um PDF - uma
-prévia da página é exibida com uma etiqueta que pode ser **arrastada e
-redimensionada** com o mouse (é possível navegar entre as páginas do
-documento) - e clique em "Assinar": o download do PDF assinado inicia
-automaticamente, com a etiqueta na posição escolhida. Se a prévia não puder
-ser carregada (ex.: PDF protegido por senha), a assinatura segue normalmente
-usando a posição padrão do servidor.
+Ou pela interface web, em `http://localhost:8080`:
+
+1. Selecione um PDF e clique em **"Enviar PDF"**: o servidor valida o arquivo
+   e a página mostra nome, tipo, tamanho e quantidade de páginas.
+2. Uma prévia da página é exibida com uma etiqueta que pode ser **arrastada e
+   redimensionada** com o mouse (é possível navegar entre as páginas do
+   documento).
+3. Clique em **"Assinar PDF"**: o download do PDF assinado inicia
+   automaticamente, com a etiqueta na posição escolhida.
+
+Se a prévia não puder ser carregada (ex.: PDF protegido por senha), o botão
+"Assinar PDF" continua disponível e a assinatura usa a posição padrão do
+servidor.
 
 ## 9. Como verificar a assinatura em um leitor compatível
 
@@ -194,7 +238,7 @@ usando a posição padrão do servidor.
 - Não há autenticação/usuários: o campo `nomeAssinante` é opcional (via
   formulário) e, se omitido, o nome (CN) do certificado configurado é utilizado.
 - O editor visual de posicionamento (arrastar/redimensionar a etiqueta no
-  preview, com navegação entre páginas) já existe na página "Assinar PDF",
+  preview, com navegação entre páginas) já existe na página inicial,
   mas ainda é por página única de cada vez - não há, por exemplo, múltiplas
   etiquetas na mesma assinatura.
 - O certificado de desenvolvimento não possui validade jurídica; produção
