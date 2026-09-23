@@ -137,6 +137,18 @@ mvn spring-boot:run
 
 Acesse `http://localhost:8080` para abrir a página do **Assinador Digital**.
 
+Para rodar os testes automatizados:
+
+```bash
+mvn test
+```
+
+Os testes cobrem as regras de validação do `DocumentoService`, os códigos
+HTTP e o formato de resposta dos dois endpoints e a própria assinatura: o PDF
+gerado tem assinatura CMS válida cobrindo o arquivo inteiro, uma alteração
+feita depois da assinatura é detectada, e a etiqueta fica na página/posição
+escolhida.
+
 ## 7. Como utilizar a API
 
 ### 7.1. Enviar e validar um PDF
@@ -243,12 +255,14 @@ servidor.
   etiquetas na mesma assinatura.
 - O certificado de desenvolvimento não possui validade jurídica; produção
   exige um certificado real (ICP-Brasil ou equivalente).
-- Não há suíte de testes automatizados no projeto atualmente.
 
 ## 11. Próximos passos possíveis
 
 - Suporte a múltiplos assinantes por documento.
 - Integração com certificados ICP-Brasil (A1/A3, cartão/token).
+- Carimbo de tempo (TSA, RFC 3161): hoje o horário da assinatura é o do
+  relógio do servidor, e o Adobe Reader informa isso ("O horário de
+  assinatura é o que consta no computador do signatário").
 - Histórico/consulta de documentos assinados (persistência em banco de dados).
 - Autenticação de usuários e vínculo do documento à conta do usuário.
 - Página de "Verificar Assinaturas" (upload de um PDF já assinado para
