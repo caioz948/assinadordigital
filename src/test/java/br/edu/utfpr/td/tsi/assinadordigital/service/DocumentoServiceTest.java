@@ -38,11 +38,11 @@ class DocumentoServiceTest {
 
 		DocumentoDTO dto = documentoService.processarEValidarPdf(arquivo("contrato.pdf", "application/pdf", pdf));
 
-		assertThat(dto.getNomeArquivo()).isEqualTo("contrato.pdf");
-		assertThat(dto.getTipoConteudo()).isEqualTo("application/pdf");
-		assertThat(dto.getTamanhoBytes()).isEqualTo(pdf.length);
-		assertThat(dto.getQuantidadePaginas()).isEqualTo(3);
-		assertThat(dto.getMensagem()).isEqualTo("PDF carregado e validado com sucesso!");
+		assertThat(dto.nomeArquivo()).isEqualTo("contrato.pdf");
+		assertThat(dto.tipoConteudo()).isEqualTo("application/pdf");
+		assertThat(dto.tamanhoBytes()).isEqualTo(pdf.length);
+		assertThat(dto.quantidadePaginas()).isEqualTo(3);
+		assertThat(dto.mensagem()).isEqualTo("PDF carregado e validado com sucesso!");
 	}
 
 	@Test
@@ -61,7 +61,7 @@ class DocumentoServiceTest {
 		DocumentoDTO dto = documentoService
 				.processarEValidarPdf(arquivo("CONTRATO.PDF", "application/octet-stream", pdf));
 
-		assertThat(dto.getQuantidadePaginas()).isEqualTo(1);
+		assertThat(dto.quantidadePaginas()).isEqualTo(1);
 	}
 
 	@Test

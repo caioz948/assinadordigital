@@ -79,7 +79,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErroResponse> handleGeneric(Exception ex) {
-		log.error("Erro inesperado ao processar assinatura", ex);
+		log.error("Erro inesperado ao processar a requisição", ex);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(ErroResponse.of("Ocorreu um erro inesperado. Tente novamente mais tarde."));
 	}

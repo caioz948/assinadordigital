@@ -33,7 +33,7 @@ public class AssinaturaController {
 		this.assinaturaService = assinaturaService;
 	}
 
-	@PostMapping(value = "/api/assinaturas", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/api/v1/assinaturas", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<byte[]> assinar(
 			@RequestParam("arquivo") MultipartFile arquivo,
 			@RequestParam(value = "nomeAssinante", required = false) String nomeAssinante,

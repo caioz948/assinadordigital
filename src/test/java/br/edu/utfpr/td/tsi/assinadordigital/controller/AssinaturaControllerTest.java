@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Security;
 import java.util.List;
 
 import org.apache.pdfbox.Loader;
@@ -28,7 +27,6 @@ import org.bouncycastle.cms.CMSSignerDigestMismatchException;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,17 +41,10 @@ import br.edu.utfpr.td.tsi.assinadordigital.PdfTestUtils;
 @AutoConfigureMockMvc
 class AssinaturaControllerTest {
 
-	private static final String URL = "/api/assinaturas";
+	private static final String URL = "/api/v1/assinaturas";
 
 	@Autowired
 	private MockMvc mockMvc;
-
-	@BeforeAll
-	static void registrarBouncyCastle() {
-		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-			Security.addProvider(new BouncyCastleProvider());
-		}
-	}
 
 	private byte[] assinar(MockMultipartFile arquivo, String... parametros) throws Exception {
 		var requisicao = multipart(URL).file(arquivo);
@@ -174,6 +165,54 @@ class AssinaturaControllerTest {
 			PDAnnotationWidget widget = documento.getSignatureFields().get(0).getWidgets().get(0);
 
 			assertThat(documento.getPage(2).getAnnotations()).anyMatch(a -> a.getCOSObject() == widget.getCOSObject());
+		}
+	}
+
+	@Test
+	void etiquetaComCoordenadasForaDaPaginaEAjustadaParaDentroDela() throws Exception {
+		byte[] pdfAssinado = assinar(pdf("contrato.pdf", 1),
+				"pagina", "1", "x", "-500", "y", "-500", "width", "5000", "height", "5000");
+
+		try (PDDocument documento = Loader.loadPDF(pdfAssinado)) {
+			PDRectangle pagina = documento.getPage(0).getMediaBox();
+			PDRectangle retangulo = documento.getSignatureFields().get(0).getWidgets().get(0).getRectangle();
+
+			assertThat(retangulo.getLowerLeftX()).isGreaterThanOrEqualTo(-0.5f);
+			assertThat(retangulo.getLowerLeftY()).isGreaterThanOrEqualTo(-0.5f);
+			assertThat(retangulo.getUpperRightX()).isLessThanOrEqualTo(pagina.getWidth() + 0.5f);
+			assertThat(retangulo.getUpperRightY()).isLessThanOrEqualTo(pagina.getHeight() + 0.5f);
+		}
+	}
+
+	@Test
+	void paginaInexistenteColocaEtiquetaNaUltimaPagina() throws Exception {
+		byte[] pdfAssinado = assinar(pdf("contrato.pdf", 2),
+				"pagina", "99", "x", "100", "y", "100", "width", "150", "height", "50");
+
+		try (PDDocument documento = Loader.loadPDF(pdfAssinado)) {
+			PDAnnotationWidget widget = documento.getSignatureFields().get(0).getWidgets().get(0);
+
+			assertThat(documento.getPage(1).getAnnotations()).anyMatch(a -> a.getCOSObject() == widget.getCOSObject());
+		}
+	}
+
+	@Test
+	void semNomeInformadoAssinanteEOCnDoCertificado() throws Exception {
+		byte[] pdfAssinado = assinar(pdf("contrato.pdf", 1));
+
+		try (PDDocument documento = Loader.loadPDF(pdfAssinado)) {
+			// Só o CN, sem o restante do nome X.500 ("CN=...,OU=TSI,O=UTFPR,...").
+			assertThat(documento.getSignatureDictionaries().get(0).getName())
+					.isEqualTo("Assinador Digital UTFPR (Certificado de Desenvolvimento)");
+		}
+	}
+
+	@Test
+	void nomeDoAssinanteInformadoEGravadoNaAssinatura() throws Exception {
+		byte[] pdfAssinado = assinar(pdf("contrato.pdf", 1), "nomeAssinante", "Maria da Silva");
+
+		try (PDDocument documento = Loader.loadPDF(pdfAssinado)) {
+			assertThat(documento.getSignatureDictionaries().get(0).getName()).isEqualTo("Maria da Silva");
 		}
 	}
 

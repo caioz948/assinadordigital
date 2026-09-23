@@ -17,7 +17,6 @@ import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
@@ -31,12 +30,6 @@ import java.util.Arrays;
  * {@link PdfService}.
  */
 class PdfSignatureService implements SignatureInterface {
-
-	static {
-		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-			Security.addProvider(new BouncyCastleProvider());
-		}
-	}
 
 	private final MaterialAssinatura material;
 

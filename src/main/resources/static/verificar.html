@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinador Digital - Verificar assinaturas</title>
+    <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Verificar assinaturas</h2>
+    <p class="subtitulo">Envie um PDF assinado para conferir quem assinou e se o documento foi alterado</p>
+
+    <form id="verificarForm">
+        <div class="form-group">
+            <label for="arquivo">Selecione o arquivo PDF:</label>
+            <input type="file" id="arquivo" name="arquivo" accept=".pdf" required>
+        </div>
+        <button type="submit" id="btnVerificar">Verificar documento</button>
+    </form>
+
+    <div id="resultado"></div>
+    <div id="listaAssinaturas"></div>
+
+    <a href="/" class="link-navegacao">← Voltar para assinar documentos</a>
+</div>
+
+<script src="/js/verificar.js"></script>
+
+</body>
+</html>

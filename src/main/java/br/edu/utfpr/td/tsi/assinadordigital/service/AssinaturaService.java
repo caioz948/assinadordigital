@@ -7,9 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 import java.security.cert.X509Certificate;
 
 /**
@@ -68,29 +65,9 @@ public class AssinaturaService {
 	private String nomeDoCertificado(MaterialAssinatura material) {
 		if (material.cadeiaCertificados().length > 0
 				&& material.cadeiaCertificados()[0] instanceof X509Certificate x509) {
-			String cn = extrairCommonName(x509.getSubjectX500Principal().getName());
-			return cn != null ? cn : x509.getSubjectX500Principal().getName();
+			return NomeCertificado.nomeComum(x509.getSubjectX500Principal());
 		}
 		return "Assinador Digital UTFPR";
-	}
-
-	/**
-	 * Extrai apenas o atributo CN (Common Name) do Subject DN do certificado,
-	 * em vez de exibir a string inteira (ex: "CN=X,OU=Y,O=Z,C=BR") como nome
-	 * do assinante na etiqueta visual.
-	 */
-	private String extrairCommonName(String subjectDn) {
-		try {
-			LdapName ldapName = new LdapName(subjectDn);
-			for (Rdn rdn : ldapName.getRdns()) {
-				if ("CN".equalsIgnoreCase(rdn.getType())) {
-					return rdn.getValue().toString();
-				}
-			}
-		} catch (InvalidNameException e) {
-			log.warn("Não foi possível interpretar o Subject DN do certificado para exibição amigável");
-		}
-		return null;
 	}
 
 	private String gerarNomeArquivoSaida(String nomeOriginalSanitizado) {

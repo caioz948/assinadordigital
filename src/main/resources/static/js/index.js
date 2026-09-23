@@ -334,7 +334,7 @@ btnAssinar.addEventListener('click', async () => {
 			dadosFormulario.append('height', posicao.height);
 		}
 
-		const resposta = await fetch('/api/assinaturas', {
+		const resposta = await fetch('/api/v1/assinaturas', {
 			method: 'POST',
 			body: dadosFormulario
 		});
