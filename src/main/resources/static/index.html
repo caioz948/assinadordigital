@@ -1,53 +1,97 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Assinar PDF</title>
-	<link rel="stylesheet" href="/css/assinar.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinador Digital - Upload de PDF</title>
+    <link rel="stylesheet" href="/css/assinar.css">
 </head>
 <body>
-	<main class="pagina">
-		<section class="cartao">
-			<h1>Assinar PDF</h1>
-			<p class="descricao">
-				Atalho para assinar um PDF rapidamente: o documento será criado na sua conta
-				com você como único assinante.
-			</p>
 
-			<form id="formAssinatura" novalidate>
-				<label class="campo-label" for="arquivoInput">Arquivo PDF:</label>
+<div class="container">
+    <h2>Assinador Digital</h2>
+    <p style="text-align: center; color: #666; font-size: 14px;">Envie um documento PDF para validação</p>
 
-				<div class="campo-arquivo">
-					<label class="botao-arquivo" for="arquivoInput">Escolher arquivo</label>
-					<input type="file" id="arquivoInput" name="arquivo" accept="application/pdf,.pdf" hidden>
-					<span id="nomeArquivo" class="nome-arquivo">Nenhum arquivo escolhido</span>
-				</div>
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="arquivo">Selecione o arquivo PDF:</label>
+            <input type="file" id="arquivo" name="arquivo" accept=".pdf" required>
+        </div>
+        <button type="submit" id="btnEnviar">Enviar PDF</button>
+    </form>
 
-				<div id="areaPreview" class="area-preview" hidden>
-					<p class="preview-dica">Arraste e redimensione a etiqueta para posicionar a assinatura.</p>
+    <div id="resultado"></div>
+</div>
 
-					<div class="preview-navegacao">
-						<button type="button" id="botaoPaginaAnterior" class="botao-navegacao">&lt;</button>
-						<span id="indicadorPagina" class="indicador-pagina">Página 1 de 1</span>
-						<button type="button" id="botaoProximaPagina" class="botao-navegacao">&gt;</button>
-					</div>
+<script>
+    // Monta as linhas do resultado com textContent para não interpretar como
+    // HTML o nome do arquivo ou mensagens vindas do servidor.
+    function criarLinha(rotulo, valor) {
+        const linha = document.createElement('div');
+        linha.className = 'info-item';
+        const forte = document.createElement('strong');
+        forte.textContent = rotulo;
+        linha.appendChild(forte);
+        if (valor !== null && valor !== undefined) {
+            linha.append(' ' + valor);
+        }
+        return linha;
+    }
 
-					<div id="previewContainer" class="preview-container">
-						<canvas id="previewCanvas"></canvas>
-						<div id="etiquetaArrastavel" class="etiqueta-arrastavel">
-							<span class="etiqueta-texto">Assinatura</span>
-							<div id="alcaRedimensionar" class="alca-redimensionar"></div>
-						</div>
-					</div>
-				</div>
+    document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-				<p id="mensagemErro" class="mensagem-erro" hidden></p>
+        const inputArquivo = document.getElementById('arquivo');
+        const divResultado = document.getElementById('resultado');
+        const btnEnviar = document.getElementById('btnEnviar');
 
-				<button type="submit" id="botaoAssinar" class="botao-assinar" disabled>Assinar</button>
-			</form>
-		</section>
-	</main>
-	<script type="module" src="/js/assinar.js"></script>
+        if (!inputArquivo.files.length) {
+            alert('Por favor, selecione um arquivo PDF.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('arquivo', inputArquivo.files[0]);
+
+        btnEnviar.disabled = true;
+        btnEnviar.textContent = 'Enviando e processando...';
+        divResultado.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/v1/documentos/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const dados = await response.json();
+                divResultado.className = 'sucesso';
+                divResultado.replaceChildren(
+                    criarLinha('✅ ' + dados.mensagem),
+                    document.createElement('br'),
+                    criarLinha('Nome:', dados.nomeArquivo),
+                    criarLinha('Tipo:', dados.tipoConteudo),
+                    criarLinha('Tamanho:', (dados.tamanhoBytes / 1024).toFixed(2) + ' KB'),
+                    criarLinha('Páginas:', dados.quantidadePaginas)
+                );
+            } else {
+                const contentType = response.headers.get('Content-Type') || '';
+                const mensagem = contentType.includes('application/json')
+                    ? (await response.json()).mensagem
+                    : await response.text();
+                divResultado.className = 'erro';
+                divResultado.replaceChildren(criarLinha('❌ Erro:', mensagem || 'Não foi possível processar o arquivo.'));
+            }
+        } catch (error) {
+            divResultado.className = 'erro';
+            divResultado.replaceChildren(criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor.'));
+        } finally {
+            divResultado.style.display = 'block';
+            btnEnviar.disabled = false;
+            btnEnviar.textContent = 'Enviar PDF';
+        }
+    });
+</script>
+
 </body>
 </html>

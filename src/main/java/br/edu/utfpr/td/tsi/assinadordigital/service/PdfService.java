@@ -51,8 +51,10 @@ public class PdfService {
 	/**
 	 * Valida se o conteúdo recebido é, de fato, um PDF processável - não
 	 * confiando apenas na extensão do arquivo enviado.
+	 *
+	 * @return quantidade de páginas do documento
 	 */
-	public void validarConteudo(byte[] conteudo) {
+	public int validarConteudo(byte[] conteudo) {
 		if (!iniciaComAssinaturaPdf(conteudo)) {
 			throw new ArquivoInvalidoException("Formato de arquivo inválido. Envie um PDF.");
 		}
@@ -61,6 +63,7 @@ public class PdfService {
 			if (documento.getNumberOfPages() == 0) {
 				throw new PdfInvalidoException("O arquivo PDF não pôde ser processado.");
 			}
+			return documento.getNumberOfPages();
 		} catch (IOException e) {
 			throw new PdfInvalidoException("O arquivo PDF não pôde ser processado.", e);
 		}
