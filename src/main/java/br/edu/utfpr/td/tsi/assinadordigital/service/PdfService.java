@@ -188,11 +188,11 @@ public class PdfService {
 			String dataFormatada = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(dataAssinatura.getTime());
 
 			int y = padding;
-			y = desenharLinha(g, "DOCUMENTO ASSINADO DIGITALMENTE", Font.BOLD, ESCALA_IMAGEM * 4,
+			y = desenharLinha(g, "DOCUMENTO ASSINADO DIGITALMENTE", Font.BOLD, ESCALA_IMAGEM * 12,
 					new Color(20, 60, 120), larguraUtil, padding, y);
-			y = desenharLinha(g, "Assinado por: " + nomeAssinante, Font.PLAIN, ESCALA_IMAGEM * 3, Color.DARK_GRAY,
+			y = desenharLinha(g, "Assinado por: " + nomeAssinante, Font.PLAIN, ESCALA_IMAGEM * 10, Color.DARK_GRAY,
 					larguraUtil, padding, y);
-			desenharLinha(g, "Data: " + dataFormatada, Font.PLAIN, ESCALA_IMAGEM * 3, Color.DARK_GRAY, larguraUtil,
+			desenharLinha(g, "Data: " + dataFormatada, Font.PLAIN, ESCALA_IMAGEM * 10, Color.DARK_GRAY, larguraUtil,
 					padding, y);
 		} finally {
 			g.dispose();
