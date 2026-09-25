@@ -9,12 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.security.cert.X509Certificate;
 
-/**
- * Orquestra o fluxo completo de assinatura: delega a validação do upload ao
- * {@link DocumentoService}, resolve a posição da etiqueta (escolhida pelo
- * usuário ou padrão do servidor) e delega a assinatura do PDF ao
- * {@link PdfService} e o carregamento do certificado ao {@link CertificadoService}.
- */
 @Service
 public class AssinaturaService {
 

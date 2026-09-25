@@ -1,9 +1,14 @@
 # Assinador Digital de Documentos - UTFPR
 
-Sprint #1: primeira versão funcional do assinador digital de PDFs. Permite que
-um usuário envie um arquivo PDF, o sistema realize uma **assinatura digital
-criptográfica real** (CMS/PKCS#7, incorporada ao PDF) com uma **representação
-visual** (etiqueta) no documento, e disponibilize o PDF assinado para download.
+Assinador digital de PDFs. Permite que um usuário:
+
+- **envie e valide** um arquivo PDF;
+- **assine** o PDF com uma **assinatura digital criptográfica real**
+  (CMS/PKCS#7, incorporada ao PDF) e uma **representação visual** (etiqueta)
+  posicionada por ele, recebendo o PDF assinado para download.
+
+A documentação técnica completa (arquitetura, arquivos e segurança)
+está em [`docs/Documentacao-Tecnica.pdf`](docs/Documentacao-Tecnica.pdf).
 
 > ⚠️ **Importante**: o certificado de desenvolvimento incluído no projeto é
 > **autoassinado** e serve apenas para testes locais. Ele **não possui o
@@ -42,12 +47,11 @@ página do Assinador Digital em `http://localhost:8080`.
 src/main/java/br/edu/utfpr/td/tsi/assinadordigital/
 ├── Main.java                          # ponto de entrada Spring Boot
 ├── controller/
-│   ├── DocumentoController.java       # POST /api/v1/documentos/upload e /verificar
+│   ├── DocumentoController.java       # POST /api/v1/documentos/upload
 │   └── AssinaturaController.java      # POST /api/v1/assinaturas
 ├── service/
 │   ├── DocumentoService.java          # recebe e valida o PDF (ponto único de validação)
 │   ├── AssinaturaService.java         # orquestra a assinatura (valida via DocumentoService, chama os demais)
-│   ├── VerificacaoAssinaturaService.java # verifica as assinaturas de um PDF (integridade, assinante, acréscimos)
 │   ├── NomeCertificado.java           # extrai o nome (CN) do certificado para exibição
 │   ├── PdfService.java                # valida o conteúdo/assina o PDF e monta a etiqueta visual
 │   ├── CertificadoService.java        # carrega o certificado/keystore configurado
@@ -58,8 +62,6 @@ src/main/java/br/edu/utfpr/td/tsi/assinadordigital/
 │   └── ResultadoAssinatura.java       # bytes do PDF assinado + nome de arquivo
 ├── dto/
 │   ├── DocumentoDTO.java              # dados do PDF validado (resposta do upload)
-│   ├── VerificacaoDTO.java            # resultado da verificação de um PDF
-│   ├── AssinaturaVerificadaDTO.java   # resultado de cada assinatura verificada
 │   └── ErroResponse.java              # formato padrão de resposta de erro
 ├── config/
 │   ├── AssinaturaKeystoreProperties.java  # signature.keystore.*
@@ -80,13 +82,11 @@ src/main/resources/
     ├── index.html                     # página inicial: envio, validação, preview e assinatura
     ├── css/index.css
     ├── js/index.js                    # lógica da página inicial (upload, preview com PDF.js, assinatura)
-    ├── verificar.html                 # página de verificação de assinaturas
-    ├── js/verificar.js
     └── vendor/pdfjs/                  # PDF.js vendorizado
 
 docs/
-└── Documentacao-Tecnica-Sprint1.pdf   # documentação técnica da Sprint #1 (anterior à
-                                       # página única, à verificação e aos testes)
+├── Documentacao-Tecnica.pdf           # documentação técnica atual (versão 2)
+└── Documentacao-Tecnica-Sprint1.pdf   # versão da Sprint #1 (histórico)
 ```
 
 Fluxos:
@@ -98,13 +98,9 @@ Fluxos:
   `DocumentoService` (mesma validação acima) → `PdfService` (monta a etiqueta
   visual e o campo de assinatura) → `PdfSignatureService` (gera a assinatura
   CMS/PKCS#7 usando o material fornecido por `CertificadoService`).
-- **Verificação**: `DocumentoController` → `VerificacaoAssinaturaService` →
-  `DocumentoService` (mesma validação acima) → para cada assinatura do PDF,
-  confere a assinatura CMS com o certificado embutido e se o `ByteRange`
-  cobre o arquivo até o fim.
 
-Como os fluxos validam pelo `DocumentoService`, um arquivo aceito no
-envio é sempre aceito na assinatura e na verificação, e vice-versa.
+Como os dois fluxos validam pelo `DocumentoService`, um arquivo aceito no
+envio é sempre aceito na assinatura, e vice-versa.
 
 ## 4. Como configurar o certificado de desenvolvimento
 
@@ -151,27 +147,6 @@ mvn spring-boot:run
 ```
 
 Acesse `http://localhost:8080` para abrir a página do **Assinador Digital**.
-
-Para rodar os testes automatizados:
-
-```bash
-mvn test
-```
-
-Os testes cobrem:
-
-- as regras de validação do `DocumentoService` e os códigos HTTP/formato de
-  resposta dos endpoints;
-- a assinatura: o PDF gerado tem assinatura CMS válida cobrindo o arquivo
-  inteiro, uma alteração feita depois da assinatura é detectada, a etiqueta
-  fica na página/posição escolhida (e é ajustada para dentro da página quando
-  as coordenadas são inválidas) e o nome do assinante é gravado corretamente;
-- a verificação: assinatura válida, inválida, documento assinado duas vezes e
-  PDF sem assinatura;
-- o certificado: senha errada, alias ou arquivo inexistente, e que nesses
-  casos a API responde com mensagem genérica, sem expor detalhes;
-- erros gerais: recurso inexistente (404), arquivo acima do limite e erro
-  inesperado sem mensagem técnica.
 
 ## 7. Como utilizar a API
 
@@ -232,50 +207,6 @@ limites da página são ajustadas automaticamente pelo servidor.
 | 422 | PDF com extensão válida mas corrompido/não processável |
 | 500 | falha de certificado ou falha ao gerar a assinatura digital |
 
-### 7.3. Verificar as assinaturas de um PDF
-
-```
-POST /api/v1/documentos/verificar
-Content-Type: multipart/form-data
-
-arquivo=<arquivo.pdf>                    (obrigatório)
-```
-
-- **Sucesso (200)**: corpo JSON com uma entrada por assinatura encontrada
-  (lista vazia se o PDF não tiver assinaturas):
-  ```json
-  {
-    "nomeArquivo": "documento_assinado.pdf",
-    "quantidadeAssinaturas": 1,
-    "quantidadeValidas": 1,
-    "mensagem": "A assinatura do documento é válida.",
-    "assinaturas": [
-      {
-        "assinante": "Assinador Digital UTFPR (Certificado de Desenvolvimento)",
-        "emissorCertificado": "Assinador Digital UTFPR (Certificado de Desenvolvimento)",
-        "dataAssinatura": "2026-09-23T14:15:58-03:00",
-        "motivo": "Assinatura digital via Assinador Digital UTFPR",
-        "situacao": "VALIDA",
-        "mensagem": "O documento não foi modificado desde que esta assinatura foi aplicada.",
-        "integra": true,
-        "cobreDocumentoInteiro": true,
-        "avisos": ["Certificado autoassinado: a identidade do assinante não é garantida por uma Autoridade Certificadora."]
-      }
-    ]
-  }
-  ```
-- **Erro (400/422)**: mesmo formato de erro da assinatura.
-
-| `situacao` | Significado |
-|---|---|
-| `VALIDA` | os bytes assinados não mudaram e a assinatura cobre o arquivo até o fim |
-| `VALIDA_COM_ALTERACOES_POSTERIORES` | os bytes assinados não mudaram, mas algo foi acrescentado depois (ex.: outra assinatura, por salvamento incremental) |
-| `INVALIDA` | o documento foi alterado ou corrompido depois de assinado |
-
-A verificação **não** confere a cadeia de confiança até uma Autoridade
-Certificadora raiz (ICP-Brasil/ICPEdu); certificados autoassinados geram
-apenas um aviso.
-
 ## 8. Como realizar um teste de assinatura manual
 
 ```bash
@@ -298,15 +229,7 @@ Se a prévia não puder ser carregada (ex.: PDF protegido por senha), o botão
 "Assinar PDF" continua disponível e a assinatura usa a posição padrão do
 servidor.
 
-## 9. Como verificar a assinatura
-
-Pelo próprio sistema: na página inicial, clique em **"Verificar assinaturas
-de um PDF"** (ou acesse `http://localhost:8080/verificar.html`), selecione o
-PDF assinado e clique em **"Verificar documento"**. A página mostra, para cada
-assinatura, quem assinou, quem emitiu o certificado, a data e se o documento
-foi alterado.
-
-Em um leitor compatível:
+## 9. Como verificar a assinatura em um leitor compatível
 
 1. Abra o `documento_assinado.pdf` no **Adobe Acrobat Reader** (ou outro
    leitor compatível com assinaturas PDF/CMS).
@@ -321,7 +244,7 @@ Em um leitor compatível:
    qualquer editor e reabra-o - o leitor deve indicar que o documento foi
    modificado após a assinatura.
 
-## 10. Limitações atuais (Sprint #1)
+## 10. Limitações atuais
 
 - Não há autenticação/usuários: o campo `nomeAssinante` é opcional (via
   formulário) e, se omitido, o nome (CN) do certificado configurado é utilizado.
@@ -341,9 +264,6 @@ Em um leitor compatível:
   assinatura é o que consta no computador do signatário").
 - Histórico/consulta de documentos assinados (persistência em banco de dados).
 - Autenticação de usuários e vínculo do documento à conta do usuário.
-- Na verificação de assinaturas, validar a cadeia de confiança do
-  certificado até uma Autoridade Certificadora raiz (ICP-Brasil/ICPEdu) e o
-  status de revogação.
 - Autenticação institucional federada (CAFe) e certificado pessoal por
   usuário (em vez de um único certificado compartilhado), também nos moldes
   do ICPEdu - ficaria a critério de uma sprint futura, já que exigiria

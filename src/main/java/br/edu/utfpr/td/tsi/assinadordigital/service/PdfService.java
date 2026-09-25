@@ -30,16 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-/**
- * Responsável pela manipulação do PDF: validação do conteúdo enviado e
- * inserção da assinatura (criptográfica + representação visual), preservando
- * o máximo possível da estrutura original do documento.
- *
- * A parte puramente criptográfica é delegada ao {@link PdfSignatureService}.
- * A posição da etiqueta é sempre recebida como parâmetro (ver
- * {@link PosicaoAssinatura}): quem decide se é a posição padrão do servidor
- * ou uma posição escolhida manualmente pelo usuário é o {@link AssinaturaService}.
- */
 @Service
 public class PdfService {
 
@@ -48,12 +38,6 @@ public class PdfService {
 	private static final int ESCALA_IMAGEM = 4;
 	private static final int TAMANHO_FONTE_MINIMO = 6;
 
-	/**
-	 * Valida se o conteúdo recebido é, de fato, um PDF processável - não
-	 * confiando apenas na extensão do arquivo enviado.
-	 *
-	 * @return quantidade de páginas do documento
-	 */
 	public int validarConteudo(byte[] conteudo) {
 		if (!iniciaComAssinaturaPdf(conteudo)) {
 			throw new ArquivoInvalidoException("Formato inválido. O arquivo enviado deve ser um PDF.");
@@ -81,10 +65,6 @@ public class PdfService {
 		return true;
 	}
 
-	/**
-	 * Assina digitalmente o PDF e insere a representação visual da assinatura
-	 * na posição informada.
-	 */
 	public byte[] assinar(byte[] pdfOriginal, String nomeAssinante, MaterialAssinatura material,
 			PosicaoAssinatura posicaoSolicitada) {
 		try (PDDocument documento = Loader.loadPDF(pdfOriginal)) {
@@ -101,10 +81,6 @@ public class PdfService {
 
 			byte[] imagemEtiqueta = gerarImagemEtiqueta(nomeAssinante, assinatura.getSignDate(), posicao);
 
-			// PDVisibleSignDesigner.yAxis() conta a partir do TOPO da página
-			// (como uma coordenada de tela), diferente da convenção do PDF
-			// (origem no canto inferior). PosicaoAssinatura.y() é sempre
-			// "distância a partir de baixo", então é preciso converter aqui.
 			float yAPartirDoTopo = pagina.getMediaBox().getHeight() - posicao.y() - posicao.height();
 
 			PDVisibleSignDesigner designer = new PDVisibleSignDesigner(documento,
@@ -145,11 +121,6 @@ public class PdfService {
 		return pagina - 1;
 	}
 
-	/**
-	 * Garante que a etiqueta (informada pelo servidor ou escolhida pelo
-	 * usuário no preview) fique dentro dos limites reais da página, mesmo
-	 * que o cliente envie coordenadas inválidas/fora do documento.
-	 */
 	private PosicaoAssinatura ajustarAosLimitesDaPagina(PosicaoAssinatura posicao, PDRectangle mediaBox) {
 		float larguraPagina = mediaBox.getWidth();
 		float alturaPagina = mediaBox.getHeight();
@@ -208,11 +179,6 @@ public class PdfService {
 		}
 	}
 
-	/**
-	 * Desenha uma linha de texto reduzindo a fonte até caber na largura
-	 * disponível (e truncando com reticências como último recurso), para que
-	 * nomes de assinante longos não estourem visualmente a etiqueta.
-	 */
 	private int desenharLinha(Graphics2D g, String texto, int estiloFonte, int tamanhoInicial, Color cor,
 			int larguraDisponivel, int x, int y) {
 		int tamanhoFonte = tamanhoInicial;

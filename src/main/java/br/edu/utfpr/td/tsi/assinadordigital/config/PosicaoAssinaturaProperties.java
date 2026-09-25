@@ -3,17 +3,10 @@ package br.edu.utfpr.td.tsi.assinadordigital.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Centraliza o posicionamento da representação visual da assinatura no PDF.
- * Para a Sprint #1 é utilizada uma posição padrão (última página, canto inferior
- * direito), mas manter esses valores aqui - em vez de espalhados pelo código -
- * permite evoluir futuramente para um posicionamento escolhido pelo usuário.
- */
 @Component
 @ConfigurationProperties(prefix = "assinatura.posicao")
 public class PosicaoAssinaturaProperties {
 
-	/** Página onde a etiqueta é inserida. Valores menores ou iguais a 0 (ou maiores que o total de páginas) representam a última página do documento. */
 	private int pagina = -1;
 	private float x = 350f;
 	private float y = 100f;

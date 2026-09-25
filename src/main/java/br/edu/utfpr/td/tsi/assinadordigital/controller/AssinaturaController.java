@@ -14,16 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 
-/**
- * Endpoint de upload e assinatura digital de PDF. O documento assinado é
- * retornado diretamente na resposta (application/pdf + Content-Disposition:
- * attachment), sem sobrescrever o arquivo original enviado.
- *
- * Os parâmetros pagina/x/y/width/height são opcionais: quando o usuário
- * arrasta a etiqueta no preview (frontend), eles trafegam a posição
- * escolhida; quando ausentes, o servidor usa a posição padrão configurada
- * (assinatura.posicao.*).
- */
 @RestController
 public class AssinaturaController {
 

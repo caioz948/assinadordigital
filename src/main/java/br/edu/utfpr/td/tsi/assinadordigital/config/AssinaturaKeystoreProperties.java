@@ -3,11 +3,6 @@ package br.edu.utfpr.td.tsi.assinadordigital.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Configuração do certificado digital utilizado para assinar os PDFs.
- * Os valores são resolvidos a partir de variáveis de ambiente (SIGNATURE_KEYSTORE_*),
- * conforme definido em application.properties, nunca diretamente no código-fonte.
- */
 @Component
 @ConfigurationProperties(prefix = "signature.keystore")
 public class AssinaturaKeystoreProperties {

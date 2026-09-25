@@ -19,17 +19,6 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 
-/**
- * Responsável por carregar o certificado digital utilizado para assinatura.
- * O mecanismo de certificado é isolado nesta classe justamente para permitir
- * que, no futuro, o keystore local em arquivo seja substituído por outro
- * provedor (HSM, serviço de nuvem, ICP-Brasil via A3/A1 etc) sem impactar o
- * restante da aplicação.
- *
- * ATENÇÃO: o certificado de desenvolvimento fornecido com o projeto é
- * autoassinado e serve apenas para testes locais - ele NÃO possui o mesmo
- * valor jurídico de um certificado ICP-Brasil.
- */
 @Service
 public class CertificadoService {
 

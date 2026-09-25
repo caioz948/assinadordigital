@@ -20,15 +20,6 @@ import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-/**
- * Implementa a assinatura criptográfica propriamente dita: recebe o range de
- * bytes do PDF (calculado internamente pelo PDFBox) e devolve uma assinatura
- * CMS/PKCS#7 detached, compatível com leitores de PDF como o Adobe Acrobat Reader.
- *
- * Esta classe cuida apenas da parte criptográfica; a manipulação do documento
- * PDF em si (campo de assinatura, aparência visual, página) fica a cargo do
- * {@link PdfService}.
- */
 class PdfSignatureService implements SignatureInterface {
 
 	private final MaterialAssinatura material;

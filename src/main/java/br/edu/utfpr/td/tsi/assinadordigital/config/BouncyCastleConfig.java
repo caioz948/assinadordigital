@@ -5,11 +5,6 @@ import java.security.Security;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Registra o provedor criptográfico do Bouncy Castle uma única vez, na
- * inicialização da aplicação. Ele é usado para gerar (PdfSignatureService) e
- * verificar (VerificacaoAssinaturaService) as assinaturas CMS/PKCS#7.
- */
 @Configuration
 public class BouncyCastleConfig {
 

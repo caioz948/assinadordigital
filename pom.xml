@@ -22,14 +22,12 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
-		<!-- Manipulação e assinatura de PDF (Apache License 2.0) -->
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
 			<version>${pdfbox.version}</version>
 		</dependency>
 
-		<!-- Assinatura criptográfica CMS/PKCS#7 (Bouncy Castle License, permissiva) -->
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk18on</artifactId>
@@ -47,7 +45,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Spring Boot 4: @AutoConfigureMockMvc foi movida para este starter dedicado -->
+	
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>

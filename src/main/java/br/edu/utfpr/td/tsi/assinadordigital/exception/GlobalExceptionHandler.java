@@ -13,10 +13,6 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-/**
- * Tratamento centralizado de exceções da API, garantindo respostas HTTP
- * coerentes e mensagens amigáveis, sem expor detalhes técnicos ao usuário.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -38,11 +34,6 @@ public class GlobalExceptionHandler {
 				.body(ErroResponse.of("O arquivo excede o tamanho máximo permitido."));
 	}
 
-	/**
-	 * Requisição que não é multipart (ex.: POST sem formulário de arquivo).
-	 * MaxUploadSizeExceededException, que é uma subclasse mais específica,
-	 * continua sendo tratada pelo próprio handler.
-	 */
 	@ExceptionHandler(MultipartException.class)
 	public ResponseEntity<ErroResponse> handleRequisicaoSemArquivo(MultipartException ex) {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErroResponse.of("Selecione um arquivo PDF."));
@@ -68,10 +59,6 @@ public class GlobalExceptionHandler {
 				.body(ErroResponse.of("Não foi possível realizar a assinatura digital."));
 	}
 
-	/**
-	 * Arquivo estático inexistente (ex.: /favicon.ico pedido pelo navegador):
-	 * é um 404 comum, não um erro inesperado da aplicação.
-	 */
 	@ExceptionHandler(NoResourceFoundException.class)
 	public ResponseEntity<Void> handleRecursoNaoEncontrado(NoResourceFoundException ex) {
 		return ResponseEntity.notFound().build();

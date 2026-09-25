@@ -12,12 +12,6 @@ import br.edu.utfpr.td.tsi.assinadordigital.config.UploadProperties;
 import br.edu.utfpr.td.tsi.assinadordigital.dto.DocumentoDTO;
 import br.edu.utfpr.td.tsi.assinadordigital.exception.ArquivoInvalidoException;
 
-/**
- * Ponto único de recebimento e validação de PDFs enviados pelo usuário.
- * Usado tanto pelo envio simples (DocumentoController) quanto pela
- * assinatura (AssinaturaService), para que os dois fluxos aceitem e recusem
- * exatamente os mesmos arquivos.
- */
 @Service
 public class DocumentoService {
 
@@ -31,9 +25,6 @@ public class DocumentoService {
 		this.pdfService = pdfService;
 	}
 
-	/**
-	 * Valida o PDF enviado e devolve suas informações básicas.
-	 */
 	public DocumentoDTO processarEValidarPdf(MultipartFile arquivo) {
 		validarArquivo(arquivo);
 		byte[] conteudo = lerConteudo(arquivo);
@@ -47,9 +38,6 @@ public class DocumentoService {
 				"PDF carregado e validado com sucesso!");
 	}
 
-	/**
-	 * Valida o PDF enviado e devolve seu conteúdo, pronto para ser assinado.
-	 */
 	public byte[] carregarPdfValidado(MultipartFile arquivo) {
 		validarArquivo(arquivo);
 		byte[] conteudo = lerConteudo(arquivo);

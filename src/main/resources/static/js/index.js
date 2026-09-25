@@ -34,12 +34,6 @@ let larguraPaginaPt = 0;
 let alturaPaginaPt = 0;
 let previewDisponivel = false;
 
-// ---------------------------------------------------------------------------
-// Resultado (mensagens de sucesso/erro)
-// ---------------------------------------------------------------------------
-
-// Monta as linhas do resultado com textContent para não interpretar como
-// HTML o nome do arquivo ou mensagens vindas do servidor.
 function criarLinha(rotulo, valor) {
 	const linha = document.createElement('div');
 	linha.className = 'info-item';
@@ -75,10 +69,6 @@ async function lerMensagemErro(resposta, mensagemPadrao) {
 	}
 	return mensagemPadrao;
 }
-
-// ---------------------------------------------------------------------------
-// Passo 1: envio e validação do PDF
-// ---------------------------------------------------------------------------
 
 function limparAssinatura() {
 	arquivoValidado = null;
@@ -140,10 +130,6 @@ form.addEventListener('submit', async (evento) => {
 	}
 });
 
-// ---------------------------------------------------------------------------
-// Passo 2: preview e posicionamento da etiqueta
-// ---------------------------------------------------------------------------
-
 function esconderPreview() {
 	areaPreview.hidden = true;
 	containerEl.classList.remove('container--com-preview');
@@ -163,9 +149,6 @@ async function carregarPreview(arquivo) {
 
 		await renderizarPagina(paginaAtual);
 	} catch (erro) {
-		// Preview é um recurso auxiliar: se o PDF não puder ser pré-visualizado
-		// no navegador (ex.: arquivo protegido por senha), a assinatura ainda
-		// segue normalmente usando a posição padrão do servidor.
 		esconderPreview();
 	}
 }
@@ -307,10 +290,6 @@ function calcularPosicaoEscolhida() {
 
 	return { pagina: paginaAtual, x: xPt, y: yPt, width: larguraPt, height: alturaPt };
 }
-
-// ---------------------------------------------------------------------------
-// Passo 3: assinatura e download
-// ---------------------------------------------------------------------------
 
 btnAssinar.addEventListener('click', async () => {
 	if (!arquivoValidado) {
