@@ -84,9 +84,7 @@ src/main/resources/
     ├── js/index.js                    # lógica da página inicial (upload, preview com PDF.js, assinatura)
     └── vendor/pdfjs/                  # PDF.js vendorizado
 
-docs/
-├── Documentacao-Tecnica.pdf           # documentação técnica atual (versão 2)
-└── Documentacao-Tecnica-Sprint1.pdf   # versão da Sprint #1 (histórico)
+
 ```
 
 Fluxos:
