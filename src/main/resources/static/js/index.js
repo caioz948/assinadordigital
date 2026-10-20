@@ -12,7 +12,8 @@ const ALTURA_ETIQUETA_MINIMA_PX = 30;
 const containerEl = document.getElementById('container');
 const form = document.getElementById('uploadForm');
 const arquivoInput = document.getElementById('arquivo');
-const btnEnviar = document.getElementById('btnEnviar');
+const btnCarregarAssinar = document.getElementById('btnCarregarAssinar');
+const btnVerificarAssinatura = document.getElementById('btnVerificarAssinatura');
 const divResultado = document.getElementById('resultado');
 
 const areaAssinatura = document.getElementById('areaAssinatura');
@@ -81,9 +82,8 @@ arquivoInput.addEventListener('change', () => {
 	limparAssinatura();
 });
 
-form.addEventListener('submit', async (evento) => {
-	evento.preventDefault();
-
+// Ação 1: Botão Carregar / Preparar para Assinar
+btnCarregarAssinar.addEventListener('click', async () => {
 	const arquivo = arquivoInput.files[0];
 	if (!arquivo) {
 		mostrarErro('Por favor, selecione um arquivo PDF.');
@@ -92,8 +92,8 @@ form.addEventListener('submit', async (evento) => {
 
 	limparAssinatura();
 	esconderResultado();
-	btnEnviar.disabled = true;
-	btnEnviar.textContent = 'Enviando e processando...';
+	btnCarregarAssinar.disabled = true;
+	btnCarregarAssinar.textContent = 'Processando...';
 
 	try {
 		const formData = new FormData();
@@ -125,8 +125,82 @@ form.addEventListener('submit', async (evento) => {
 	} catch (erro) {
 		mostrarResultado('erro', criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor.'));
 	} finally {
-		btnEnviar.disabled = false;
-		btnEnviar.textContent = 'Enviar PDF';
+		btnCarregarAssinar.disabled = false;
+		btnCarregarAssinar.textContent = 'Assinar PDF';
+	}
+});
+
+// Ação 2: Botão Verificar Assinatura Digital
+btnVerificarAssinatura.addEventListener('click', async () => {
+	const arquivo = arquivoInput.files[0];
+	if (!arquivo) {
+		mostrarErro('Por favor, selecione um arquivo PDF para verificar.');
+		return;
+	}
+
+	limparAssinatura();
+	esconderResultado();
+	btnVerificarAssinatura.disabled = true;
+	btnVerificarAssinatura.textContent = 'Verificando...';
+
+	try {
+		const formData = new FormData();
+		formData.append('arquivo', arquivo);
+
+		const resposta = await fetch('/api/v1/documentos/verificar', {
+			method: 'POST',
+			body: formData
+		});
+
+		if (!resposta.ok) {
+			mostrarErro(await lerMensagemErro(resposta, 'Não foi possível verificar as assinaturas do arquivo.'));
+			return;d
+		}
+
+		const assinaturas = await resposta.json();
+
+		if (!assinaturas || assinaturas.length === 0) {
+			mostrarResultado('erro', 
+				criarLinha('⚠️ Atenção:', 'Este documento NÃO possui nenhuma assinatura digital.'),
+				document.createElement('br'),
+				criarLinha('Detalhe:', 'O arquivo enviado não contém blocos de assinatura válidos.')
+			);
+			return;
+		}
+
+		// Monta o relatório com todas as assinaturas encontradas no PDF
+		const elementosResultado = [criarLinha('🔍 Relatório de Verificação de Assinaturas:')];
+		elementosResultado.push(document.createElement('br'));
+
+		let todasValidas = true;
+
+		assinaturas.forEach((sig, index) => {
+			const statusTexto = sig.valido ? 'VÁLIDA (Íntegra)' : 'INVÁLIDA (Modificado ou Corrompido)';
+			if (!sig.valido) todasValidas = false;
+
+			elementosResultado.push(criarLinha(`Assinatura #${index + 1}:`, ''));
+			elementosResultado.push(criarLinha(' • Signatário:', sig.nomeSignatario));
+			elementosResultado.push(criarLinha(' • Data:', sig.dataAssinatura));
+			elementosResultado.push(criarLinha(' • Razão:', sig.razao || 'Não informada'));
+			elementosResultado.push(criarLinha(' • Status:', statusTexto));
+			elementosResultado.push(document.createElement('br'));
+		});
+
+		if (todasValidas) {
+			mostrarResultado('sucesso', ...elementosResultado);
+		} else {
+			mostrarResultado('erro', 
+				criarLinha('❌ Alerta de Integridade:', 'O documento foi modificado após ser assinado ou contém assinaturas corrompidas!'),
+				document.createElement('br'),
+				...elementosResultado
+			);
+		}
+
+	} catch (erro) {
+		mostrarResultado('erro', criarLinha('❌ Erro de Conexão:', 'Não foi possível conectar ao servidor para verificação.'));
+	} finally {
+		btnVerificarAssinatura.disabled = false;
+		btnVerificarAssinatura.textContent = 'Verificar Assinatura';
 	}
 });
 

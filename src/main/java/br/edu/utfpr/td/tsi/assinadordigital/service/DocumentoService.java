@@ -1,6 +1,7 @@
 package br.edu.utfpr.td.tsi.assinadordigital.service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -71,4 +72,11 @@ public class DocumentoService {
 			throw new ArquivoInvalidoException("Não foi possível ler o arquivo enviado.");
 		}
 	}
+	
+	public List<PdfService.InformacaoAssinatura> verificarAssinaturaPdf(MultipartFile arquivo) {
+	    validarArquivo(arquivo);
+	    byte[] conteudo = lerConteudo(arquivo);
+	    return pdfService.verificarAssinaturas(conteudo);
+	}
+	
 }

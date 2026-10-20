@@ -10,14 +10,18 @@
 
 <div class="container" id="container">
     <h2>Assinador Digital</h2>
-    <p class="subtitulo">Envie um documento PDF para validação e assinatura</p>
+    <p class="subtitulo">Envie um documento PDF para validação ou assinatura digital</p>
 
     <form id="uploadForm">
         <div class="form-group">
             <label for="arquivo">Selecione o arquivo PDF:</label>
             <input type="file" id="arquivo" name="arquivo" accept=".pdf" required>
         </div>
-        <button type="submit" id="btnEnviar">Enviar PDF</button>
+        
+        <div class="botoes-acao" style="display: flex; gap: 10px; margin-top: 15px;">
+            <button type="button" id="btnCarregarAssinar">Assinar PDF</button>
+            <button type="button" id="btnVerificarAssinatura">Verificar Assinatura</button>
+        </div>
     </form>
 
     <div id="resultado"></div>
@@ -41,10 +45,9 @@
             </div>
         </div>
 
-        <button type="button" id="btnAssinar" class="botao-assinar">Assinar PDF</button>
+        <button type="button" id="btnAssinar" class="botao-assinar">Confirmar e Assinar PDF</button>
     </div>
 
-    
 </div>
 
 <script type="module" src="/js/index.js"></script>
