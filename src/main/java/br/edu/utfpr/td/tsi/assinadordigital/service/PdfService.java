@@ -1,21 +1,5 @@
 package br.edu.utfpr.td.tsi.assinadordigital.service;
 
-import br.edu.utfpr.td.tsi.assinadordigital.exception.ArquivoInvalidoException;
-import br.edu.utfpr.td.tsi.assinadordigital.exception.AssinaturaDigitalException;
-import br.edu.utfpr.td.tsi.assinadordigital.exception.PdfInvalidoException;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
-import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import javax.imageio.ImageIO;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -31,6 +15,25 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import br.edu.utfpr.td.tsi.assinadordigital.exception.ArquivoInvalidoException;
+import br.edu.utfpr.td.tsi.assinadordigital.exception.AssinaturaDigitalException;
+import br.edu.utfpr.td.tsi.assinadordigital.exception.PdfInvalidoException;
 
 @Service
 public class PdfService {
@@ -213,7 +216,6 @@ public class PdfService {
 	        List<InformacaoAssinatura> resultados = new ArrayList<>();
 
 	        if (assinaturas == null || assinaturas.isEmpty()) {
-	            // Retorna um indicador ou lança um aviso de que o documento não possui assinaturas
 	            return resultados; 
 	        }
 
@@ -229,13 +231,16 @@ public class PdfService {
 	            boolean valido = true;
 
 	            try {
-	                // O PDFBox verifica se a assinatura cobre todo o documento atual ou se houve alteração posterior
-	                // Se o documento foi modificado após a assinatura, a validação de byte range / conteúdo falha.
-	                boolean assinaturaIntegra = sig.getContents() != null && sig.getContents().length > 0;
-	                
-	                // Verificação adicional de integridade de alteração pós-assinatura
-	                // (O PDFBox valida se a revisão assinada coincide com o estado atual ou se houve adulteração)
-	                if (!assinaturaIntegra) {
+	                int[] byteRange = sig.getByteRange();
+	                if (byteRange != null && byteRange.length == 4) {
+	                    long tamanhoEsperadoPelaAssinatura = (long) byteRange[2] + byteRange[3];
+	                    if (conteudo.length != tamanhoEsperadoPelaAssinatura) {
+	                        valido = false;
+	                        log.warn("Tentativa de adulteração detectada: Tamanho do arquivo difere do ByteRange assinado.");
+	                    }
+	                }
+
+	                if (sig.getContents() == null || sig.getContents().length == 0) {
 	                    valido = false;
 	                }
 	            } catch (Exception e) {
